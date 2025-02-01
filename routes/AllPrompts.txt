@@ -1,0 +1,59 @@
+{
+  "name": "string",
+  "contact": {
+    "location": "string",
+    "email": "string",
+    "phone": "string"
+  },
+  "professionalSummary": "string",
+  "technicalSkills": {
+    "frontendTechnologies": [
+      "string"
+    ],
+    "frontendTesting": [
+      "string"
+    ],
+    "backendTechnologies": [
+      "string"
+    ],
+    "devOpsAndTools": [
+      "string"
+    ],
+    "miscallenous": [
+      "string"
+    ]
+  },
+  "workExperience": [
+    {
+      "role": "string",
+      "company": "string",
+      "location": "string",
+      "startDate": "string",
+      "endDate": "string",
+      "projects": [
+        {
+          "name": "string",
+          "description": "string",
+          "keyAchievements": [
+            "string"
+          ],
+          "techStack": [
+            "string"
+          ]
+        }
+      ]
+    }
+  ],
+  "education": {
+    "degree": "string",
+    "university": "string",
+    "gpa": "string"
+  },
+  "portfolio": {
+    "github": "string",
+    "webPortfolio": "string",
+    "projects": [
+      "string"
+    ]
+  }
+}
