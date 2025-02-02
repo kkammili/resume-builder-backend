@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 const RESUME_FORMAT_PROMPT = path.join(__dirname, "../prompts/1.resumeFormat.json");
 const JD_PROMPT = path.join(__dirname, "../prompts/2.jdPrompt.json")
 const SKILL_CMP_PROMPT = path.join(__dirname, "../prompts/3.compareSkillsPrompt.json")
-
+const PROF_SUMM_PROMPT = path.join(__dirname, "../prompts/4.professionalSummaryPrompt.json")
 export const genOldFormattedResume = async(resume)=>{
     let resumeFormatPrompt = formatData(RESUME_FORMAT_PROMPT)
     try{
@@ -107,6 +107,28 @@ export const processSkills = async (resumeSkills, jobDescSkills) => {
   
     return updatedTechnicalSkills;
   };
+
+
+/**
+ * ✅ Generate an Improved Professional Summary
+ * @param {string} oldSummary - The professional summary from the user's resume
+ * @param {string} jobDescription - The job description of the desired job
+ * @returns {Promise<Object>} - JSON containing the improved professional summary
+ */
+export const generateImprovedSummary = async (oldSummary, jobDescription, companyName) => {
+    let impSummPrompt = formatData(PROF_SUMM_PROMPT)
+
+    try{
+        impSummPrompt = impSummPrompt.prompt
+        .replace("{{oldSummary}}", oldSummary)
+        .replace("{{jobDescription}}", jobDescription)
+        .replace("{{companyName}}", companyName);
+        let impSumm = await promptUtil(impSummPrompt)
+        return JSON.parse(impSumm)
+    }catch(error){
+        throw new Error(error.message)
+    }
+};
 
 
 const promptUtil = async (prompt) =>{
