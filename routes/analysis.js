@@ -14,7 +14,7 @@
 // suggestions: suggestions.choices[0].message.content,
 
 import express from "express";
-import { genOldFormattedResume, genJobDescDetails, processSkills, generateImprovedSummary } from "./utils.js";
+import { genOldFormattedResume, genJobDescDetails, processSkills, generateImprovedSummary, genWorkExperience } from "./utils.js";
 // import processResumeAsync from "./processResumeAsync.js";
 
 const router = express.Router();
@@ -30,8 +30,11 @@ router.post("/", async (req, res) => {
     // generating final resume
     const [finalUpdatedSkills, finalProfessionalSummary] = await Promise.all([
         processSkills(oldFormattedResume?.technicalSkills, jobDescDetails?.job_desc_tech_skills),
-        generateImprovedSummary(oldFormattedResume?.professionalSummary, jd, jobDescDetails.company_name)
+        generateImprovedSummary(oldFormattedResume?.professionalSummary, jd, jobDescDetails.company_name),
     ])
+
+    const finalWorkExperience = await genWorkExperience(oldFormattedResume?.workExperience, finalUpdatedSkills?.missingSkills)
+
 
     // ✅ Send JSON response
     res.json({
@@ -39,7 +42,8 @@ router.post("/", async (req, res) => {
         oldFormattedResume,
         jobDescDetails,
         finalUpdatedSkills,
-        finalProfessionalSummary
+        finalProfessionalSummary,
+        finalWorkExperience
     });
   } catch (error) {
     console.error("Analysis error:", error);

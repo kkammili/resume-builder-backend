@@ -15,6 +15,8 @@ const RESUME_FORMAT_PROMPT = path.join(__dirname, "../prompts/1.resumeFormat.jso
 const JD_PROMPT = path.join(__dirname, "../prompts/2.jdPrompt.json")
 const SKILL_CMP_PROMPT = path.join(__dirname, "../prompts/3.compareSkillsPrompt.json")
 const PROF_SUMM_PROMPT = path.join(__dirname, "../prompts/4.professionalSummaryPrompt.json")
+const GEN_POINTS_PROMPT = path.join(__dirname, "../prompts/5.generateResumePtPrompt.json")
+
 export const genOldFormattedResume = async(resume)=>{
     let resumeFormatPrompt = formatData(RESUME_FORMAT_PROMPT)
     try{
@@ -128,6 +130,114 @@ export const generateImprovedSummary = async (oldSummary, jobDescription, compan
     }catch(error){
         throw new Error(error.message)
     }
+};
+
+
+/**
+ * ✅ Generate Resume Points for Missing Skills
+ * @param {Array} missingSkills - The list of missing skills
+ * @returns {Promise<Object>} - JSON containing generated resume points
+ */
+const generateResumePoints = async (missingSkills) => {
+    let resPointPrompt = formatData(GEN_POINTS_PROMPT)
+
+    try{
+        resPointPrompt = resPointPrompt.prompt
+        .replace("{{missingSkills}}", JSON.stringify(missingSkills, null, 2));
+        let resPoints = await promptUtil(resPointPrompt)
+        return JSON.parse(resPoints)
+    }catch(error){
+        throw new Error(error.message)
+    }
+};
+
+/**
+ * ✅ Enhance Work Experience by Adding Resume Points
+ * @param {Array} workExperience - Work experience array
+ * @param {Object} generatedResumePoints - Resume points grouped by skill
+ * @returns {Array} - New work experience with resume points distributed
+ */
+const updateResumeWithGeneratedPoints = (workExperience, generatedResumePoints) => {
+    console.log("🚀 Creating a new enhanced work experience...");
+  
+    // ✅ Extract actual resume points from OpenAI response
+    const actualResumePoints = generatedResumePoints.resume_points || generatedResumePoints;
+  
+    // ✅ Deep copy work experience to avoid modifying the original data
+    const newWorkExperience = JSON.parse(JSON.stringify(workExperience));
+  
+    // ✅ Track assigned resume points to evenly distribute across projects
+    const assignedSkills = new Map();
+  
+    Object.entries(actualResumePoints).forEach(([skill, resumePoints]) => {
+      let skillAdded = false;
+  
+      if (!Array.isArray(resumePoints)) {
+        console.error(`⚠️ Skipping invalid resume points for ${skill}:`, resumePoints);
+        return;
+      }
+  
+      newWorkExperience.forEach(job => {
+        job.projects.forEach(project => {
+          const techStackLower = project.techStack.map(t => t.toLowerCase());
+  
+          // ✅ If skill already exists in tech stack, it's a relevant project
+          if (techStackLower.some(existingSkill => existingSkill.startsWith(skill.toLowerCase()))) {
+            if (!assignedSkills.has(skill)) {
+              assignedSkills.set(skill, []);
+            }
+  
+            const assignedPoints = assignedSkills.get(skill);
+  
+            // ✅ Distribute resume points evenly across multiple projects
+            resumePoints.forEach(point => {
+              if (!assignedPoints.includes(point)) {
+                project.keyAchievements.push(point);
+                assignedPoints.push(point);
+                skillAdded = true;
+              }
+            });
+          }
+        });
+      });
+  
+      // ✅ If no relevant project is found, assign it to multiple projects evenly
+      if (!skillAdded && newWorkExperience.length > 0) {
+        newWorkExperience.forEach((job, index) => {
+          job.projects.forEach(project => {
+            if (!assignedSkills.has(skill)) {
+              assignedSkills.set(skill, []);
+            }
+  
+            const assignedPoints = assignedSkills.get(skill);
+  
+            resumePoints.forEach((point, i) => {
+              if (!assignedPoints.includes(point) && i % newWorkExperience.length === index) {
+                project.keyAchievements.push(point);
+                assignedPoints.push(point);
+                project.techStack.push(skill); // ✅ Add missing skill to tech stack
+              }
+            });
+          });
+        });
+      }
+    });
+  
+    return newWorkExperience;
+  };
+  
+
+export const genWorkExperience = async (workExperience, missingSkills) => {
+    console.log("🔍 Step 1: Generating Resume Points...");
+    const generatedResumePoints = await generateResumePoints(missingSkills);
+    console.log("✅ Resume Points Generated:", generatedResumePoints);
+  
+    console.log("🔍 Step 2: Updating Work Experience with Resume Points...");
+    const updatedWorkExperience = updateResumeWithGeneratedPoints(workExperience, generatedResumePoints);
+  
+    console.log("✅ Final Updated Work Experience:", updatedWorkExperience);
+  
+    return updatedWorkExperience;
 };
 
 
