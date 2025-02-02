@@ -14,7 +14,7 @@
 // suggestions: suggestions.choices[0].message.content,
 
 import express from "express";
-import { genOldFormattedResume, genJobDescDetails } from "./utils.js";
+import { genOldFormattedResume, genJobDescDetails, processSkills } from "./utils.js";
 // import processResumeAsync from "./processResumeAsync.js";
 
 const router = express.Router();
@@ -22,18 +22,20 @@ router.post("/", async (req, res) => {
   const { resume, jd } = req.body;
   try {
  
-     // 2️⃣ **Use the Structure Prompt from JSON File**
-    //  const oldFormattedResume = genOldFormattedResume(resume)
+    // resume and jd inputs
     const [oldFormattedResume, jobDescDetails] = await Promise.all([
         genOldFormattedResume(resume),
         genJobDescDetails(jd)
     ])
+    // analysing missing skills
+    const finalUpdatedSkills = await processSkills(oldFormattedResume?.technicalSkills, jobDescDetails?.job_desc_tech_skills)
 
     // ✅ Send JSON response
     res.json({
         success: true,
         oldFormattedResume,
-        jobDescDetails
+        jobDescDetails,
+        finalUpdatedSkills
     });
   } catch (error) {
     console.error("Analysis error:", error);
