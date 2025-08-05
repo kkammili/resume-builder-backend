@@ -17,6 +17,7 @@
     "diff": "^8.0.2",
     "express": "~4.16.1",
     "morgan": "~1.9.1",
+    "nodemon": "^3.1.10",
     "openai": "^4.82.0",
     "serverless-http": "^3.2.0"
   }
