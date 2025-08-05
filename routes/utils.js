@@ -24,19 +24,20 @@ const SKILL_CMP_PROMPT = path.join(__dirname, "../prompts/3.compareSkillsPrompt.
 const PROF_SUMM_PROMPT = path.join(__dirname, "../prompts/4.professionalSummaryPrompt.json")
 const GEN_POINTS_PROMPT = path.join(__dirname, "../prompts/5.generateResumePtPrompt.json")
 
-export const genOldFormattedResume = async(resume)=>{
-    let resumeFormatPrompt = formatData(RESUME_FORMAT_PROMPT)
-    try{
+export const genOldFormattedResume = async (resume) => {
+    let resumeFormatPrompt = formatData(RESUME_FORMAT_PROMPT);
+    try {
+        // Modify prompt to capture all sections dynamically
         resumeFormatPrompt = resumeFormatPrompt.prompt.replace("{{resume}}", resume);
         // 3️⃣ **Generate Resume JSON Structure using OpenAI**
-        let oldFormattedResume = await promptUtil(resumeFormatPrompt)
-        return JSON.parse(oldFormattedResume)
-    }catch(error){
-        throw new Error(error.message)
+        let oldFormattedResume = await promptUtil(resumeFormatPrompt);
+        return JSON.parse(oldFormattedResume);
+    } catch (error) {
+        throw new Error(error.message);
     }
-}
+};
 
-export const genJobDescDetails = async(jd)=>{
+export const genJobDescDetails = async (jd) => {
     let jdPrompt = formatData(JD_PROMPT)
     try{
         jdPrompt = jdPrompt.prompt.replace("{{job_description}}", jd)
@@ -50,19 +51,19 @@ export const genJobDescDetails = async(jd)=>{
 
 export const processSkills = async (resumeSkills, jobDescSkills) => {
     console.log("🚀 Processing Resume Skills and Job Description Skills...");
-  
+
     // ✅ Step 1: Identify Missing Skills
     const missingSkills = identifyMissingSkills(resumeSkills, jobDescSkills);
-  
+
     // ✅ Step 2: Categorize Missing Skills Using OpenAI
     const aiCategorizedSkills = await categorizeSkillsWithAI(missingSkills);
-  
+
     // ✅ Step 3: Merge AI Categorized Skills into Resume
     let updatedResumeSkills = mergeSkills(resumeSkills, aiCategorizedSkills.categorized_skills);
     updatedResumeSkills.missingSkills = missingSkills
     return updatedResumeSkills;
   };
-  
+
   /**
    * ✅ Identify Missing Skills
    * @param {Object} resumeSkills - Categorized technical skills from resume
@@ -77,7 +78,7 @@ export const processSkills = async (resumeSkills, jobDescSkills) => {
       return !flattenedResumeSkills.some(existingSkill => existingSkill.startsWith(lowerSkill));
     });
   };
-  
+
   /**
    * ✅ Use OpenAI to Categorize Missing Skills
    * @param {Array} missingSkills - List of missing skills
@@ -97,7 +98,7 @@ export const processSkills = async (resumeSkills, jobDescSkills) => {
         throw new Error(error.message)
     }
 }
-  
+
   /**
    * ✅ Merge AI-Categorized Skills into Resume Skills
    * @param {Object} resumeSkills - Original resume technical skills
@@ -106,14 +107,14 @@ export const processSkills = async (resumeSkills, jobDescSkills) => {
    */
   const mergeSkills = (resumeSkills, aiCategorizedSkills) => {
     const updatedTechnicalSkills = { ...resumeSkills };
-  
+
     for (const [category, skills] of Object.entries(aiCategorizedSkills)) {
       if (!updatedTechnicalSkills[category]) {
         updatedTechnicalSkills[category] = [];
       }
       updatedTechnicalSkills[category].push(...skills);
     }
-  
+
     return updatedTechnicalSkills;
   };
 
@@ -166,36 +167,36 @@ const generateResumePoints = async (missingSkills) => {
  */
 const updateResumeWithGeneratedPoints = (workExperience, generatedResumePoints) => {
     console.log("🚀 Creating a new enhanced work experience...");
-  
+
     // ✅ Extract actual resume points from OpenAI response
     const actualResumePoints = generatedResumePoints.resume_points || generatedResumePoints;
-  
+
     // ✅ Deep copy work experience to avoid modifying the original data
     const newWorkExperience = JSON.parse(JSON.stringify(workExperience));
-  
+
     // ✅ Track assigned resume points to evenly distribute across projects
     const assignedSkills = new Map();
-  
+
     Object.entries(actualResumePoints).forEach(([skill, resumePoints]) => {
       let skillAdded = false;
-  
+
       if (!Array.isArray(resumePoints)) {
         console.error(`⚠️ Skipping invalid resume points for ${skill}:`, resumePoints);
         return;
       }
-  
+
       newWorkExperience.forEach(job => {
         job.projects.forEach(project => {
           const techStackLower = project.techStack.map(t => t.toLowerCase());
-  
+
           // ✅ If skill already exists in tech stack, it's a relevant project
           if (techStackLower.some(existingSkill => existingSkill.startsWith(skill.toLowerCase()))) {
             if (!assignedSkills.has(skill)) {
               assignedSkills.set(skill, []);
             }
-  
+
             const assignedPoints = assignedSkills.get(skill);
-  
+
             // ✅ Distribute resume points evenly across multiple projects
             resumePoints.forEach(point => {
               if (!assignedPoints.includes(point)) {
@@ -207,7 +208,7 @@ const updateResumeWithGeneratedPoints = (workExperience, generatedResumePoints) 
           }
         });
       });
-  
+
       // ✅ If no relevant project is found, assign it to multiple projects evenly
       if (!skillAdded && newWorkExperience.length > 0) {
         newWorkExperience.forEach((job, index) => {
@@ -215,9 +216,9 @@ const updateResumeWithGeneratedPoints = (workExperience, generatedResumePoints) 
             if (!assignedSkills.has(skill)) {
               assignedSkills.set(skill, []);
             }
-  
+
             const assignedPoints = assignedSkills.get(skill);
-  
+
             resumePoints.forEach((point, i) => {
               if (!assignedPoints.includes(point) && i % newWorkExperience.length === index) {
                 project.keyAchievements.push(point);
@@ -229,21 +230,21 @@ const updateResumeWithGeneratedPoints = (workExperience, generatedResumePoints) 
         });
       }
     });
-  
+
     return newWorkExperience;
   };
-  
+
 
 export const genWorkExperience = async (workExperience, missingSkills) => {
     console.log("🔍 Step 1: Generating Resume Points...");
     const generatedResumePoints = await generateResumePoints(missingSkills);
     console.log("✅ Resume Points Generated:", generatedResumePoints);
-  
+
     console.log("🔍 Step 2: Updating Work Experience with Resume Points...");
     const updatedWorkExperience = updateResumeWithGeneratedPoints(workExperience, generatedResumePoints);
-  
+
     console.log("✅ Final Updated Work Experience:", updatedWorkExperience);
-  
+
     return updatedWorkExperience;
 };
 
@@ -255,7 +256,7 @@ const promptUtil = async (prompt) =>{
             model: "gpt-3.5-turbo",
             max_tokens: 4096,
          });
-    
+
          return res.choices[0].message.content
     }catch(error){
         throw new Error(error.message)

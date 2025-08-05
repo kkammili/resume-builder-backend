@@ -35,7 +35,10 @@ const ResumeBuilder = () => {
             name: 'Project Name',
             description: 'Brief description of the project',
             technologies: ['React', 'Node.js']
-        }]
+        }],
+        certifications: [],
+        leadership: [],
+        rawSections: {}
     });
 
     const [uploadedResume, setUploadedResume] = useState('');
@@ -60,6 +63,8 @@ const ResumeBuilder = () => {
         { id: 'experience', label: 'Experience', icon: 'fas fa-briefcase' },
         { id: 'education', label: 'Education', icon: 'fas fa-graduation-cap' },
         { id: 'skills', label: 'Skills', icon: 'fas fa-cogs' },
+        { id: 'certifications', label: 'Certifications', icon: 'fas fa-certificate' },
+        { id: 'leadership', label: 'Leadership & Extras', icon: 'fas fa-star' },
         { id: 'projects', label: 'Projects', icon: 'fas fa-code' }
     ];
 
@@ -71,84 +76,129 @@ const ResumeBuilder = () => {
             // Parse the resume content to extract actual information
             const lines = resumeText.split('\n').filter(line => line.trim());
             
-            // Extract name (first non-empty line)
-            let name = lines[0]?.trim() || 'Name';
+            // Enhanced section detection patterns
+            const sectionPatterns = {
+                contact: /^(CONTACT|PERSONAL)/i,
+                summary: /^(PROFESSIONAL SUMMARY|SUMMARY|PROFILE|OBJECTIVE)/i,
+                experience: /^(PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EXPERIENCE|EMPLOYMENT)/i,
+                education: /^(EDUCATION|ACADEMIC|QUALIFICATIONS)/i,
+                skills: /^(TECHNICAL SKILLS|SKILLS|CORE COMPETENCIES|TECHNOLOGIES)/i,
+                certifications: /^(CERTIFICATIONS|CERTIFICATES|LICENSES)/i,
+                leadership: /^(LEADERSHIP|EXTRAS|ACTIVITIES|ACHIEVEMENTS|AWARDS)/i,
+                projects: /^(PROJECTS|PORTFOLIO)/i
+            };
             
-            // Extract contact info
+            // Dynamic section parsing
+            const sections = {};
+            let currentSection = null;
+            let currentSectionContent = [];
+            
+            // Extract name (first non-empty line that's not a section header)
+            let name = '';
+            for (let line of lines.slice(0, 5)) {
+                const isSection = Object.values(sectionPatterns).some(pattern => pattern.test(line));
+                if (!isSection && line.length > 3 && !line.includes('@') && !line.match(/\d{3}[-.\s]\d{3}[-.\s]\d{4}/)) {
+                    name = line.trim();
+                    break;
+                }
+            }
+            if (!name) name = lines[0]?.trim() || 'Name';
+            
+            // Extract contact info from entire document
             let email = '';
             let phone = '';
             let location = '';
+            let linkedin = '';
             
             const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
             const phonePattern = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+            const linkedinPattern = /linkedin\.com\/in\/[^\s]+|@[a-zA-Z0-9._-]+/;
             
-            for (let line of lines) {
+            for (let line of lines.slice(0, 10)) {
                 const emailMatch = line.match(emailPattern);
                 if (emailMatch) email = emailMatch[0];
                 
                 const phoneMatch = line.match(phonePattern);
                 if (phoneMatch) phone = phoneMatch[0];
                 
+                const linkedinMatch = line.match(linkedinPattern);
+                if (linkedinMatch) linkedin = linkedinMatch[0];
+                
                 // Extract location (look for city, state pattern)
-                if (line.includes(',') && (line.includes('TX') || line.includes('NY') || line.includes('CA') || line.includes('CO'))) {
+                if (line.includes(',') && line.match(/\b[A-Z]{2}\b|\b\d{5}\b/)) {
                     location = line.trim();
                 }
             }
             
-            // Extract professional summary
-            let summary = '';
-            const summaryIndex = lines.findIndex(line => 
-                line.toUpperCase().includes('PROFESSIONAL SUMMARY') || 
-                line.toUpperCase().includes('SUMMARY')
-            );
-            if (summaryIndex !== -1 && summaryIndex + 1 < lines.length) {
-                summary = lines[summaryIndex + 1].trim();
+            // Parse sections dynamically
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // Check if this line is a section header
+                let matchedSection = null;
+                for (const [sectionName, pattern] of Object.entries(sectionPatterns)) {
+                    if (pattern.test(line)) {
+                        matchedSection = sectionName;
+                        break;
+                    }
+                }
+                
+                if (matchedSection) {
+                    // Save previous section
+                    if (currentSection && currentSectionContent.length > 0) {
+                        sections[currentSection] = [...currentSectionContent];
+                    }
+                    
+                    // Start new section
+                    currentSection = matchedSection;
+                    currentSectionContent = [];
+                } else if (currentSection) {
+                    // Add content to current section
+                    currentSectionContent.push(line);
+                }
             }
             
-            // Extract skills
+            // Save last section
+            if (currentSection && currentSectionContent.length > 0) {
+                sections[currentSection] = [...currentSectionContent];
+            }
+            
+            // Parse professional summary
+            let summary = '';
+            if (sections.summary) {
+                summary = sections.summary.join(' ').trim();
+            }
+            
+            // Parse skills with enhanced extraction
             let skills = [];
-            const skillsIndex = lines.findIndex(line => 
-                line.toUpperCase().includes('TECHNICAL SKILLS') || 
-                line.toUpperCase().includes('SKILLS')
-            );
-            if (skillsIndex !== -1) {
-                for (let i = skillsIndex + 1; i < lines.length && i < skillsIndex + 5; i++) {
-                    if (lines[i] && !lines[i].toUpperCase().includes('PROFESSIONAL EXPERIENCE') && 
-                        !lines[i].toUpperCase().includes('EXPERIENCE')) {
-                        // Extract skills from lines like "Frontend: React, Angular, Vue"
-                        const skillLine = lines[i].replace(/^[^:]*:/, '').trim();
+            if (sections.skills) {
+                for (let line of sections.skills) {
+                    // Handle different skill formats
+                    if (line.includes(':')) {
+                        const skillLine = line.replace(/^[^:]*:/, '').trim();
                         if (skillLine) {
-                            const extractedSkills = skillLine.split(/[,;]/).map(s => s.trim()).filter(s => s);
+                            const extractedSkills = skillLine.split(/[,;|]/).map(s => s.trim()).filter(s => s);
                             skills.push(...extractedSkills);
                         }
                     } else {
-                        break;
+                        const extractedSkills = line.split(/[,;|]/).map(s => s.trim()).filter(s => s);
+                        skills.push(...extractedSkills);
                     }
                 }
             }
             
-            // Extract work experience
+            // Parse work experience with better detection
             let experience = [];
-            const expIndex = lines.findIndex(line => 
-                line.toUpperCase().includes('PROFESSIONAL EXPERIENCE') || 
-                line.toUpperCase().includes('EXPERIENCE')
-            );
-            
-            if (expIndex !== -1) {
+            if (sections.experience) {
                 let currentJob = null;
                 let currentPoints = [];
                 
-                for (let i = expIndex + 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    // Stop at education section
-                    if (line.toUpperCase().includes('EDUCATION') || 
-                        line.toUpperCase().includes('LEADERSHIP')) break;
-                    
+                for (let line of sections.experience) {
                     // Check if this looks like a job title line
-                    if (line.includes('|') && (line.includes('–') || line.includes('-')) && 
-                        (line.includes('202') || line.includes('Present'))) {
+                    if (line.includes('|') || (line.includes('–') || line.includes('-')) && 
+                        (line.includes('202') || line.includes('Present') || line.includes('Current'))) {
+                        
                         // Save previous job if exists
                         if (currentJob) {
                             currentJob.points = [...currentPoints];
@@ -156,25 +206,41 @@ const ResumeBuilder = () => {
                         }
                         
                         // Parse new job
-                        const parts = line.split('|');
-                        const titleCompany = parts[0].trim();
-                        const dates = parts[parts.length - 1].trim();
+                        let title = '', company = '', dates = '', jobLocation = location;
                         
-                        const titleMatch = titleCompany.match(/^(.+?)\s*–\s*(.+)$/);
-                        if (titleMatch) {
-                            currentJob = {
-                                title: titleMatch[1].trim(),
-                                company: titleMatch[2].trim(),
-                                location: location,
-                                startDate: dates.split('–')[0]?.trim() || dates.split('-')[0]?.trim() || '',
-                                endDate: dates.split('–')[1]?.trim() || dates.split('-')[1]?.trim() || 'Present',
-                                points: []
-                            };
+                        if (line.includes('|')) {
+                            const parts = line.split('|');
+                            const titleCompany = parts[0].trim();
+                            dates = parts[parts.length - 1].trim();
+                            
+                            if (titleCompany.includes('–')) {
+                                const titleMatch = titleCompany.match(/^(.+?)\s*–\s*(.+)$/);
+                                if (titleMatch) {
+                                    title = titleMatch[1].trim();
+                                    company = titleMatch[2].trim();
+                                }
+                            } else {
+                                title = titleCompany;
+                            }
+                        } else {
+                            // Single line format
+                            title = line.split(/\s*[-–]\s*/)[0];
+                            const datePart = line.match(/(20\d{2}.*(?:Present|Current|\d{4}))/);
+                            if (datePart) dates = datePart[1];
                         }
+                        
+                        currentJob = {
+                            title: title || 'Position',
+                            company: company || 'Company',
+                            location: jobLocation,
+                            startDate: dates.split(/[-–]/)[0]?.trim() || '',
+                            endDate: dates.split(/[-–]/)[1]?.trim() || 'Present',
+                            points: []
+                        };
                         currentPoints = [];
-                    } else if (line.startsWith('•') || line.match(/^[A-Z].*\./)) {
+                    } else if (line.startsWith('•') || line.match(/^[A-Z•].*/) || line.startsWith('-')) {
                         // This looks like a bullet point
-                        currentPoints.push(line.replace(/^•\s*/, '').trim());
+                        currentPoints.push(line.replace(/^[•-]\s*/, '').trim());
                     }
                 }
                 
@@ -185,14 +251,39 @@ const ResumeBuilder = () => {
                 }
             }
             
-            // Update resume data with parsed information
+            // Parse education
+            let education = [];
+            if (sections.education) {
+                for (let line of sections.education) {
+                    if (line.includes('|') || line.includes('–') || line.includes('-')) {
+                        const parts = line.split(/[|–-]/);
+                        education.push({
+                            degree: parts[0]?.trim() || 'Degree',
+                            school: parts[1]?.trim() || 'University',
+                            location: parts[2]?.trim() || location,
+                            year: parts[parts.length - 1]?.trim() || ''
+                        });
+                        break; // Take first education entry
+                    }
+                }
+            }
+            if (education.length === 0) {
+                education.push({
+                    degree: 'Bachelor of Science in Computer Science',
+                    school: 'University Name',
+                    location: 'City, State',
+                    year: '2020'
+                });
+            }
+            
+            // Update resume data with parsed information including new sections
             setResumeData({
                 contact: {
                     name: name,
                     email: email,
                     phone: phone,
                     location: location,
-                    linkedin: '',
+                    linkedin: linkedin,
                     website: ''
                 },
                 summary: summary || 'Experienced professional with a track record of success...',
@@ -208,18 +299,16 @@ const ResumeBuilder = () => {
                         'Improved system performance by 40%'
                     ]
                 }],
-                education: [{
-                    degree: 'Bachelor of Science in Computer Science',
-                    school: 'University Name',
-                    location: 'City, State',
-                    year: '2020'
-                }],
-                skills: skills.length > 0 ? skills.slice(0, 15) : ['JavaScript', 'React', 'Node.js', 'Python', 'SQL'],
+                education: education,
+                skills: skills.length > 0 ? skills.slice(0, 20) : ['JavaScript', 'React', 'Node.js', 'Python', 'SQL'],
                 projects: [{
                     name: 'Project Name',
                     description: 'Brief description of the project',
                     technologies: ['React', 'Node.js']
-                }]
+                }],
+                certifications: sections.certifications || [],
+                leadership: sections.leadership || [],
+                rawSections: sections // Store all parsed sections for reference
             });
             
             setUploadError('');
@@ -461,13 +550,98 @@ const ResumeBuilder = () => {
         </div>
     );
 
+    const EducationSection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Education</h3>
+            {resumeData.education.map((edu, index) => (
+                <div key={index} className="space-y-2 p-3 border rounded">
+                    <input
+                        type="text"
+                        placeholder="Degree"
+                        value={edu.degree}
+                        onChange={(e) => {
+                            const newEdu = [...resumeData.education];
+                            newEdu[index].degree = e.target.value;
+                            setResumeData({...resumeData, education: newEdu});
+                        }}
+                        className="w-full p-2 border rounded"
+                    />
+                    <input
+                        type="text"
+                        placeholder="School/University"
+                        value={edu.school}
+                        onChange={(e) => {
+                            const newEdu = [...resumeData.education];
+                            newEdu[index].school = e.target.value;
+                            setResumeData({...resumeData, education: newEdu});
+                        }}
+                        className="w-full p-2 border rounded"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                        <input
+                            type="text"
+                            placeholder="Location"
+                            value={edu.location}
+                            onChange={(e) => {
+                                const newEdu = [...resumeData.education];
+                                newEdu[index].location = e.target.value;
+                                setResumeData({...resumeData, education: newEdu});
+                            }}
+                            className="p-2 border rounded"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Year"
+                            value={edu.year}
+                            onChange={(e) => {
+                                const newEdu = [...resumeData.education];
+                                newEdu[index].year = e.target.value;
+                                setResumeData({...resumeData, education: newEdu});
+                            }}
+                            className="p-2 border rounded"
+                        />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    const CertificationsSection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Certifications</h3>
+            <textarea
+                value={Array.isArray(resumeData.certifications) ? resumeData.certifications.join('\n') : ''}
+                onChange={(e) => setResumeData({...resumeData, certifications: e.target.value.split('\n').filter(cert => cert.trim())})}
+                className="w-full p-3 border rounded h-32"
+                placeholder="AWS Certified Solutions Architect&#10;Microsoft Azure Fundamentals&#10;Google Cloud Professional..."
+            />
+            <p className="text-sm text-gray-500">Enter each certification on a new line</p>
+        </div>
+    );
+
+    const LeadershipSection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Leadership & Extras</h3>
+            <textarea
+                value={Array.isArray(resumeData.leadership) ? resumeData.leadership.join('\n') : ''}
+                onChange={(e) => setResumeData({...resumeData, leadership: e.target.value.split('\n').filter(item => item.trim())})}
+                className="w-full p-3 border rounded h-32"
+                placeholder="Team Lead - Led a team of 5 developers&#10;Volunteer Work - Organized tech meetups&#10;Awards - Employee of the Year 2022..."
+            />
+            <p className="text-sm text-gray-500">Enter each achievement/activity on a new line</p>
+        </div>
+    );
+
     const renderActiveSection = () => {
         switch(activeSection) {
             case 'upload': return <UploadSection />;
             case 'contact': return <ContactSection />;
             case 'summary': return <SummarySection />;
             case 'experience': return <ExperienceSection />;
+            case 'education': return <EducationSection />;
             case 'skills': return <SkillsSection />;
+            case 'certifications': return <CertificationsSection />;
+            case 'leadership': return <LeadershipSection />;
             default: return <UploadSection />;
         }
     };
@@ -621,6 +795,53 @@ const ResumeBuilder = () => {
                                 })}
                             </div>
                         </div>
+
+                        {/* Education */}
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2 mb-4">
+                                EDUCATION
+                            </h2>
+                            {resumeData.education.map((edu, index) => (
+                                <div key={index} className="mb-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold text-gray-800">{edu.degree}</h3>
+                                            <p className="text-gray-600">{edu.school}</p>
+                                            {edu.location && <p className="text-gray-500 text-sm">{edu.location}</p>}
+                                        </div>
+                                        {edu.year && <span className="text-gray-500 text-sm">{edu.year}</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Certifications */}
+                        {resumeData.certifications && resumeData.certifications.length > 0 && (
+                            <div className="mb-6">
+                                <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2 mb-4">
+                                    CERTIFICATIONS
+                                </h2>
+                                <ul className="list-disc list-inside text-gray-700 space-y-1">
+                                    {resumeData.certifications.map((cert, index) => (
+                                        <li key={index}>{cert}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Leadership & Extras */}
+                        {resumeData.leadership && resumeData.leadership.length > 0 && (
+                            <div className="mb-6">
+                                <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2 mb-4">
+                                    LEADERSHIP & EXTRAS
+                                </h2>
+                                <ul className="list-disc list-inside text-gray-700 space-y-1">
+                                    {resumeData.leadership.map((item, index) => (
+                                        <li key={index}>{item}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </div>
                 </div>
 
