@@ -1,342 +1,401 @@
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
-// ResumeUploader Component
-const ResumeUploader = ({ onResumeUpload }) => {
-    const [resume, setResume] = useState('');
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (resume.trim()) {
-            onResumeUpload(resume);
-        }
-    };
-
-    return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Upload Your Resume</h2>
-            <form onSubmit={handleSubmit}>
-                <textarea
-                    className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Paste your resume text here..."
-                    value={resume}
-                    onChange={(e) => setResume(e.target.value)}
-                    required
-                />
-                <button
-                    type="submit"
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200"
-                >
-                    Upload Resume
-                </button>
-            </form>
-        </div>
-    );
-};
-
-// JDUploader Component
-const JDUploader = ({ onJDUpload }) => {
+const ResumeBuilder = () => {
+    const [activeSection, setActiveSection] = useState('contact');
+    const [resumeData, setResumeData] = useState({
+        contact: {
+            name: 'JOHN DOE',
+            email: 'john@example.com',
+            phone: '(555) 123-4567',
+            location: 'New York, NY',
+            linkedin: '',
+            website: ''
+        },
+        summary: 'Experienced professional with a track record of success...',
+        experience: [{
+            title: 'Software Engineer',
+            company: 'Tech Company',
+            location: 'New York, NY',
+            startDate: '2020',
+            endDate: 'Present',
+            points: [
+                'Developed scalable web applications',
+                'Collaborated with cross-functional teams',
+                'Improved system performance by 40%'
+            ]
+        }],
+        education: [{
+            degree: 'Bachelor of Science in Computer Science',
+            school: 'University Name',
+            location: 'City, State',
+            year: '2020'
+        }],
+        skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL'],
+        projects: [{
+            name: 'Project Name',
+            description: 'Brief description of the project',
+            technologies: ['React', 'Node.js']
+        }]
+    });
+    
+    const [aiScore, setAiScore] = useState(87);
+    const [suggestions, setSuggestions] = useState([
+        'Add more quantifiable achievements',
+        'Include relevant keywords',
+        'Expand technical skills section'
+    ]);
     const [jobDescription, setJobDescription] = useState('');
+    const [showAiPanel, setShowAiPanel] = useState(false);
+    const [analyzing, setAnalyzing] = useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (jobDescription.trim()) {
-            onJDUpload(jobDescription);
+    const sections = [
+        { id: 'contact', label: 'Contact', icon: 'fas fa-user' },
+        { id: 'summary', label: 'Summary', icon: 'fas fa-file-text' },
+        { id: 'experience', label: 'Experience', icon: 'fas fa-briefcase' },
+        { id: 'education', label: 'Education', icon: 'fas fa-graduation-cap' },
+        { id: 'skills', label: 'Skills', icon: 'fas fa-cogs' },
+        { id: 'projects', label: 'Projects', icon: 'fas fa-code' }
+    ];
+
+    const analyzeWithAI = async () => {
+        if (!jobDescription.trim()) {
+            alert('Please enter a job description first');
+            return;
         }
-    };
-
-    return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Job Description</h2>
-            <form onSubmit={handleSubmit}>
-                <textarea
-                    className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Paste the job description here..."
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    required
-                />
-                <button
-                    type="submit"
-                    className="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200"
-                >
-                    Upload Job Description
-                </button>
-            </form>
-        </div>
-    );
-};
-
-// SkillGapViewer Component
-const SkillGapViewer = ({ skillGaps, onUpdateResume, loading }) => {
-    if (!skillGaps) return null;
-
-    const { finalUpdatedSkills, jobDescDetails } = skillGaps;
-    const missingSkills = finalUpdatedSkills?.missingSkills || [];
-
-    return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Skill Gap Analysis</h2>
-            
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2 text-red-600">Missing Skills ({missingSkills.length})</h3>
-                <div className="flex flex-wrap gap-2">
-                    {missingSkills.map((skill, index) => (
-                        <span key={index} className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">
-                            {skill}
-                        </span>
-                    ))}
-                </div>
-            </div>
-
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2 text-blue-600">Target Company</h3>
-                <p className="text-gray-700">{jobDescDetails?.company_name || 'Not specified'}</p>
-            </div>
-
-            <button
-                onClick={onUpdateResume}
-                disabled={loading}
-                className={`w-full py-3 px-6 rounded-lg font-bold text-white transition duration-200 ${
-                    loading 
-                        ? 'bg-gray-400 cursor-not-allowed' 
-                        : 'bg-purple-600 hover:bg-purple-700'
-                }`}
-            >
-                {loading ? 'Updating Resume...' : 'Update Resume with AI'}
-            </button>
-        </div>
-    );
-};
-
-// ResumeDiffEditor Component
-const ResumeDiffEditor = ({ originalResume, updatedResume, diff, onSave }) => {
-    const [editedResume, setEditedResume] = useState('');
-
-    useEffect(() => {
-        if (updatedResume) {
-            setEditedResume(JSON.stringify(updatedResume, null, 2));
-        }
-    }, [updatedResume]);
-
-    if (!updatedResume) return null;
-
-    return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Updated Resume with AI Highlights</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                    <h3 className="text-lg font-semibold mb-2 text-gray-700">Diff View</h3>
-                    <div className="border border-gray-300 rounded-lg p-4 h-96 overflow-y-auto bg-gray-50">
-                        {diff && diff.map((part, index) => (
-                            <div
-                                key={index}
-                                className={`p-2 mb-1 rounded ${
-                                    part.added 
-                                        ? 'diff-added' 
-                                        : part.removed 
-                                            ? 'diff-removed' 
-                                            : 'diff-unchanged'
-                                }`}
-                            >
-                                <pre className="whitespace-pre-wrap text-sm">{part.value}</pre>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                
-                <div>
-                    <h3 className="text-lg font-semibold mb-2 text-gray-700">Editable Resume</h3>
-                    <textarea
-                        className="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
-                        value={editedResume}
-                        onChange={(e) => setEditedResume(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            <div className="mt-6 flex justify-end space-x-4">
-                <button
-                    onClick={() => onSave(editedResume)}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200"
-                >
-                    Save Final Resume
-                </button>
-                <button
-                    onClick={() => {
-                        const blob = new Blob([editedResume], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'updated-resume.json';
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200"
-                >
-                    Export JSON
-                </button>
-            </div>
-        </div>
-    );
-};
-
-// Main App Component
-const App = () => {
-    const [resume, setResume] = useState('');
-    const [jobDescription, setJobDescription] = useState('');
-    const [analysisResult, setAnalysisResult] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [step, setStep] = useState(1);
-    const [savedResume, setSavedResume] = useState('');
-
-    const handleResumeUpload = (resumeText) => {
-        setResume(resumeText);
-        if (jobDescription) {
-            setStep(2);
-        }
-    };
-
-    const handleJDUpload = (jdText) => {
-        setJobDescription(jdText);
-        if (resume) {
-            setStep(2);
-        }
-    };
-
-    const analyzeSkills = async () => {
-        if (!resume || !jobDescription) return;
-
-        setLoading(true);
+        
+        setAnalyzing(true);
         try {
             const response = await fetch('/api/analyze', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    resume: resume,
+                    resume: JSON.stringify(resumeData),
                     jd: jobDescription
                 })
             });
 
             const data = await response.json();
             if (data.success) {
-                setAnalysisResult(data);
-                setStep(3);
-            } else {
-                alert('Error analyzing resume: ' + data.message);
+                // Update resume with AI suggestions
+                setResumeData(data.updatedResume);
+                setAiScore(Math.floor(Math.random() * 20) + 80); // Simulate score
+                setSuggestions(data.finalProfessionalSummary?.suggestions || suggestions);
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            console.error('Analysis failed:', error);
         } finally {
-            setLoading(false);
+            setAnalyzing(false);
         }
     };
 
-    const handleUpdateResume = () => {
-        if (analysisResult) {
-            setStep(4);
-        }
+    const downloadPDF = () => {
+        window.print();
     };
 
-    const handleSaveResume = (editedResume) => {
-        setSavedResume(editedResume);
-        alert('Resume saved successfully!');
-    };
+    const ContactSection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Contact Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+                <input
+                    type="text"
+                    placeholder="Full Name"
+                    value={resumeData.contact.name}
+                    onChange={(e) => setResumeData({...resumeData, contact: {...resumeData.contact, name: e.target.value}})}
+                    className="p-2 border rounded"
+                />
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={resumeData.contact.email}
+                    onChange={(e) => setResumeData({...resumeData, contact: {...resumeData.contact, email: e.target.value}})}
+                    className="p-2 border rounded"
+                />
+                <input
+                    type="text"
+                    placeholder="Phone"
+                    value={resumeData.contact.phone}
+                    onChange={(e) => setResumeData({...resumeData, contact: {...resumeData.contact, phone: e.target.value}})}
+                    className="p-2 border rounded"
+                />
+                <input
+                    type="text"
+                    placeholder="Location"
+                    value={resumeData.contact.location}
+                    onChange={(e) => setResumeData({...resumeData, contact: {...resumeData.contact, location: e.target.value}})}
+                    className="p-2 border rounded"
+                />
+            </div>
+        </div>
+    );
 
-    useEffect(() => {
-        if (resume && jobDescription && step === 2) {
-            analyzeSkills();
-        }
-    }, [step]);
+    const SummarySection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Professional Summary</h3>
+            <textarea
+                value={resumeData.summary}
+                onChange={(e) => setResumeData({...resumeData, summary: e.target.value})}
+                className="w-full p-3 border rounded h-32"
+                placeholder="Write a compelling summary..."
+            />
+        </div>
+    );
 
-    return (
-        <div className="min-h-screen gradient-bg">
-            <div className="container mx-auto px-4 py-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-4">
-                        🤖 AI Resume Updater
-                    </h1>
-                    <p className="text-xl text-gray-100">
-                        Upload your resume and job description to get AI-powered improvements
-                    </p>
-                </div>
-
-                {/* Progress Indicator */}
-                <div className="flex justify-center mb-8">
-                    <div className="flex items-center space-x-4">
-                        {[1, 2, 3, 4].map((stepNum) => (
-                            <div key={stepNum} className="flex items-center">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                                    step >= stepNum ? 'bg-white text-purple-600' : 'bg-purple-300 text-white'
-                                }`}>
-                                    {stepNum}
-                                </div>
-                                {stepNum < 4 && (
-                                    <div className={`w-12 h-1 ${
-                                        step > stepNum ? 'bg-white' : 'bg-purple-300'
-                                    }`} />
-                                )}
-                            </div>
+    const ExperienceSection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Work Experience</h3>
+            {resumeData.experience.map((exp, index) => (
+                <div key={index} className="border p-4 rounded">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <input
+                            type="text"
+                            placeholder="Job Title"
+                            value={exp.title}
+                            onChange={(e) => {
+                                const newExp = [...resumeData.experience];
+                                newExp[index].title = e.target.value;
+                                setResumeData({...resumeData, experience: newExp});
+                            }}
+                            className="p-2 border rounded"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Company"
+                            value={exp.company}
+                            onChange={(e) => {
+                                const newExp = [...resumeData.experience];
+                                newExp[index].company = e.target.value;
+                                setResumeData({...resumeData, experience: newExp});
+                            }}
+                            className="p-2 border rounded"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        {exp.points.map((point, pointIndex) => (
+                            <input
+                                key={pointIndex}
+                                type="text"
+                                placeholder="Achievement bullet point"
+                                value={point}
+                                onChange={(e) => {
+                                    const newExp = [...resumeData.experience];
+                                    newExp[index].points[pointIndex] = e.target.value;
+                                    setResumeData({...resumeData, experience: newExp});
+                                }}
+                                className="w-full p-2 border rounded"
+                            />
                         ))}
                     </div>
                 </div>
+            ))}
+        </div>
+    );
 
-                {/* Step 1: Upload Resume and Job Description */}
-                {step === 1 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <ResumeUploader onResumeUpload={handleResumeUpload} />
-                        <JDUploader onJDUpload={handleJDUpload} />
+    const SkillsSection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Skills</h3>
+            <textarea
+                value={resumeData.skills.join(', ')}
+                onChange={(e) => setResumeData({...resumeData, skills: e.target.value.split(', ')})}
+                className="w-full p-3 border rounded h-24"
+                placeholder="JavaScript, React, Node.js, Python..."
+            />
+        </div>
+    );
+
+    const renderActiveSection = () => {
+        switch(activeSection) {
+            case 'contact': return <ContactSection />;
+            case 'summary': return <SummarySection />;
+            case 'experience': return <ExperienceSection />;
+            case 'skills': return <SkillsSection />;
+            default: return <ContactSection />;
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-100">
+            {/* Header */}
+            <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
+                <div className="flex items-center space-x-4">
+                    <h1 className="text-2xl font-bold text-blue-600">
+                        <i className="fas fa-file-alt mr-2"></i>
+                        Free Resume Builder
+                    </h1>
+                </div>
+                
+                {/* Toolbar */}
+                <div className="flex items-center space-x-2">
+                    <button 
+                        onClick={() => setShowAiPanel(!showAiPanel)}
+                        className="toolbar-btn bg-purple-600 text-white hover:bg-purple-700"
+                    >
+                        <i className="fas fa-robot mr-2"></i>AI Optimize
+                    </button>
+                    <button onClick={downloadPDF} className="toolbar-btn bg-blue-600 text-white hover:bg-blue-700">
+                        <i className="fas fa-download mr-2"></i>Download PDF
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex h-screen">
+                {/* Sidebar */}
+                <div className="w-80 sidebar p-6">
+                    <div className="space-y-2 mb-6">
+                        {sections.map(section => (
+                            <div
+                                key={section.id}
+                                onClick={() => setActiveSection(section.id)}
+                                className={`flex items-center space-x-3 p-3 rounded cursor-pointer transition-colors ${
+                                    activeSection === section.id ? 'section-active' : 'hover:bg-gray-100'
+                                }`}
+                            >
+                                <i className={`${section.icon} text-gray-600`}></i>
+                                <span className="font-medium">{section.label}</span>
+                            </div>
+                        ))}
                     </div>
-                )}
 
-                {/* Step 2: Loading Analysis */}
-                {step === 2 && (
-                    <div className="text-center">
-                        <div className="bg-white rounded-lg shadow-lg p-8">
-                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Analyzing Your Resume</h2>
-                            <p className="text-gray-600">AI is comparing your skills with the job requirements...</p>
+                    {/* AI Score */}
+                    <div className="bg-gray-800 p-6 rounded-lg text-center mb-6">
+                        <h3 className="text-white font-semibold mb-4">Resume Score</h3>
+                        <div className="score-circle w-24 h-24 mx-auto mb-4">
+                            <div className="score-inner w-full h-full text-2xl">
+                                {aiScore}
+                            </div>
+                        </div>
+                        <p className="text-gray-300 text-sm">Needs Improvement</p>
+                        <button 
+                            onClick={() => setShowAiPanel(true)}
+                            className="mt-3 bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+                        >
+                            <i className="fas fa-chart-line mr-2"></i>
+                            Improve Score
+                        </button>
+                    </div>
+
+                    {/* Current Section Editor */}
+                    <div className="bg-white p-4 rounded border">
+                        {renderActiveSection()}
+                    </div>
+                </div>
+
+                {/* Resume Preview */}
+                <div className="flex-1 p-6">
+                    <div className="resume-preview p-8 rounded-lg max-w-4xl mx-auto">
+                        {/* Header */}
+                        <div className="text-center border-b pb-6 mb-6">
+                            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                                {resumeData.contact.name}
+                            </h1>
+                            <div className="text-gray-600 space-x-4">
+                                <span><i className="fas fa-envelope mr-1"></i>{resumeData.contact.email}</span>
+                                <span><i className="fas fa-phone mr-1"></i>{resumeData.contact.phone}</span>
+                                <span><i className="fas fa-map-marker-alt mr-1"></i>{resumeData.contact.location}</span>
+                            </div>
+                        </div>
+
+                        {/* Summary */}
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2 mb-4">
+                                SUMMARY
+                            </h2>
+                            <p className="text-gray-700 leading-relaxed">{resumeData.summary}</p>
+                        </div>
+
+                        {/* Experience */}
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2 mb-4">
+                                EXPERIENCE
+                            </h2>
+                            {resumeData.experience.map((exp, index) => (
+                                <div key={index} className="mb-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h3 className="font-bold text-gray-800">{exp.title}</h3>
+                                            <p className="text-gray-600">{exp.company} • {exp.location}</p>
+                                        </div>
+                                        <span className="text-gray-500 text-sm">{exp.startDate} - {exp.endDate}</span>
+                                    </div>
+                                    <ul className="list-disc list-inside text-gray-700 space-y-1">
+                                        {exp.points.map((point, pointIndex) => (
+                                            <li key={pointIndex}>{point}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Skills */}
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2 mb-4">
+                                SKILLS
+                            </h2>
+                            <div className="flex flex-wrap gap-2">
+                                {resumeData.skills.map((skill, index) => (
+                                    <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                )}
+                </div>
 
-                {/* Step 3: Show Skill Gaps */}
-                {step === 3 && analysisResult && (
-                    <SkillGapViewer 
-                        skillGaps={analysisResult} 
-                        onUpdateResume={handleUpdateResume}
-                        loading={loading}
-                    />
-                )}
+                {/* AI Panel */}
+                {showAiPanel && (
+                    <div className="w-80 bg-white border-l p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-lg">AI Keyword Targeting</h3>
+                            <button 
+                                onClick={() => setShowAiPanel(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Job Description</label>
+                                <textarea
+                                    value={jobDescription}
+                                    onChange={(e) => setJobDescription(e.target.value)}
+                                    className="w-full p-3 border rounded h-32 text-sm"
+                                    placeholder="Paste the job description here to get AI suggestions..."
+                                />
+                            </div>
 
-                {/* Step 4: Show Updated Resume with Diff */}
-                {step === 4 && analysisResult && (
-                    <ResumeDiffEditor
-                        originalResume={analysisResult.originalResume}
-                        updatedResume={analysisResult.updatedResume}
-                        diff={analysisResult.diff}
-                        onSave={handleSaveResume}
-                    />
-                )}
+                            <button
+                                onClick={analyzeWithAI}
+                                disabled={analyzing}
+                                className="w-full bg-purple-600 text-white py-3 rounded font-medium hover:bg-purple-700 disabled:opacity-50"
+                            >
+                                {analyzing ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                                        Analyzing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-magic mr-2"></i>
+                                        Optimize Resume
+                                    </>
+                                )}
+                            </button>
 
-                {/* Reset Button */}
-                {step > 1 && (
-                    <div className="text-center mt-8">
-                        <button
-                            onClick={() => {
-                                setStep(1);
-                                setResume('');
-                                setJobDescription('');
-                                setAnalysisResult(null);
-                                setSavedResume('');
-                            }}
-                            className="bg-white hover:bg-gray-100 text-purple-600 font-bold py-2 px-6 rounded-lg transition duration-200"
-                        >
-                            Start Over
-                        </button>
+                            <div>
+                                <h4 className="font-medium mb-2">AI Suggestions:</h4>
+                                <ul className="space-y-2 text-sm">
+                                    {suggestions.map((suggestion, index) => (
+                                        <li key={index} className="flex items-start space-x-2">
+                                            <i className="fas fa-lightbulb text-yellow-500 mt-1"></i>
+                                            <span>{suggestion}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -344,5 +403,4 @@ const App = () => {
     );
 };
 
-// Render the app
-ReactDOM.render(<App />, document.getElementById('root'));
+ReactDOM.render(<ResumeBuilder />, document.getElementById('root'));

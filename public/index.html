@@ -1,31 +1,46 @@
-<html>
 
-<head>
-  <title>Express</title>
-  <link rel="stylesheet" href="/stylesheets/style.css">
-</head>
-
-<body>
-  <h1>Express</h1>
-  <p>Welcome to Express</p>
-</body>
-
-</html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Resume Updater</title>
+    <title>Free Resume Builder - AI Powered</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .diff-added { background-color: #d4edda; border-left: 4px solid #28a745; }
-        .diff-removed { background-color: #f8d7da; border-left: 4px solid #dc3545; }
-        .diff-unchanged { background-color: #f8f9fa; }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .resume-preview { 
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-height: 800px;
+        }
+        .score-circle {
+            background: conic-gradient(from 0deg, #ef4444 0%, #f59e0b 30%, #22c55e 70%, #22c55e 100%);
+            border-radius: 50%;
+            padding: 4px;
+        }
+        .score-inner {
+            background: #1f2937;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .section-active { border-left: 4px solid #3b82f6; background: #eff6ff; }
+        .toolbar-btn { 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            border: 1px solid #e5e7eb; 
+            background: white;
+            font-size: 14px;
+        }
+        .toolbar-btn:hover { background: #f3f4f6; }
+        .sidebar { background: #f8fafc; border-right: 1px solid #e5e7eb; }
     </style>
 </head>
 <body>

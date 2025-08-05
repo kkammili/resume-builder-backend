@@ -48,6 +48,23 @@ router.post("/", async (req, res) => {
     const updatedResumeText = JSON.stringify(updatedResume, null, 2);
     const diff = diffLines(originalResumeText, updatedResumeText);
 
+    // Calculate resume score based on various factors
+    const calculateScore = (resume, jobDesc) => {
+        let score = 60; // Base score
+        
+        // Add points for having key sections
+        if (resume.professionalSummary && resume.professionalSummary.length > 50) score += 10;
+        if (resume.workExperience && resume.workExperience.length > 0) score += 15;
+        if (resume.technicalSkills && Object.keys(resume.technicalSkills).length > 0) score += 10;
+        
+        // Add points for skill matching
+        if (finalUpdatedSkills.missingSkills && finalUpdatedSkills.missingSkills.length < 5) score += 5;
+        
+        return Math.min(score, 100);
+    };
+
+    const resumeScore = calculateScore(updatedResume, jobDescDetails);
+
     // ✅ Send JSON response
     res.json({
         success: true,
@@ -57,6 +74,13 @@ router.post("/", async (req, res) => {
         finalUpdatedSkills,
         finalProfessionalSummary,
         finalWorkExperience,
+        resumeScore,
+        suggestions: [
+            "Add more quantifiable achievements with numbers and percentages",
+            "Include industry-specific keywords from the job description",
+            "Expand your technical skills section with relevant technologies",
+            "Optimize your professional summary for ATS systems"
+        ],
         diff
     });
   } catch (error) {
