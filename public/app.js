@@ -39,6 +39,11 @@ const ResumeBuilder = () => {
         }]
     });
     
+    const [uploadedResume, setUploadedResume] = useState('');
+    const [showUpload, setShowUpload] = useState(false);
+    const [uploadError, setUploadError] = useState('');
+    const [updatedPoints, setUpdatedPoints] = useState(new Set());
+    
     const [aiScore, setAiScore] = useState(87);
     const [suggestions, setSuggestions] = useState([
         'Add more quantifiable achievements',
@@ -50,6 +55,7 @@ const ResumeBuilder = () => {
     const [analyzing, setAnalyzing] = useState(false);
 
     const sections = [
+        { id: 'upload', label: 'Upload Resume', icon: 'fas fa-upload' },
         { id: 'contact', label: 'Contact', icon: 'fas fa-user' },
         { id: 'summary', label: 'Summary', icon: 'fas fa-file-text' },
         { id: 'experience', label: 'Experience', icon: 'fas fa-briefcase' },
@@ -57,6 +63,67 @@ const ResumeBuilder = () => {
         { id: 'skills', label: 'Skills', icon: 'fas fa-cogs' },
         { id: 'projects', label: 'Projects', icon: 'fas fa-code' }
     ];
+
+    const processUploadedResume = async (resumeText) => {
+        try {
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resume: resumeText,
+                    jd: "Convert this resume to structured format"
+                })
+            });
+
+            const data = await response.json();
+            if (data.success && data.originalResume) {
+                const originalResume = data.originalResume;
+                
+                // Convert to frontend format
+                const convertedData = {
+                    contact: {
+                        name: originalResume.name || 'Name',
+                        email: originalResume.contact?.email || '',
+                        phone: originalResume.contact?.phone || '',
+                        location: originalResume.contact?.location || '',
+                        linkedin: '',
+                        website: ''
+                    },
+                    summary: originalResume.professionalSummary || '',
+                    experience: originalResume.workExperience?.map(exp => ({
+                        title: exp.role || '',
+                        company: exp.company || '',
+                        location: exp.location || '',
+                        startDate: exp.startDate || '',
+                        endDate: exp.endDate || '',
+                        points: exp.projects?.flatMap(project => project.keyAchievements || []) || []
+                    })) || [],
+                    education: originalResume.education ? [{
+                        degree: originalResume.education.degree || '',
+                        school: originalResume.education.university || '',
+                        location: '',
+                        year: originalResume.education.gpa || ''
+                    }] : [],
+                    skills: originalResume.technicalSkills ? 
+                        Object.values(originalResume.technicalSkills).flat() : [],
+                    projects: originalResume.workExperience?.flatMap(exp => 
+                        exp.projects?.map(project => ({
+                            name: project.name || '',
+                            description: project.description || '',
+                            technologies: project.techStack || []
+                        })) || []
+                    ) || []
+                };
+                
+                setResumeData(convertedData);
+                setUploadError('');
+                alert('Resume uploaded and converted successfully!');
+            }
+        } catch (error) {
+            console.error('Upload processing failed:', error);
+            setUploadError('Failed to process uploaded resume');
+        }
+    };
 
     const analyzeWithAI = async () => {
         if (!jobDescription.trim()) {
@@ -66,24 +133,71 @@ const ResumeBuilder = () => {
         
         setAnalyzing(true);
         try {
+            const resumeToAnalyze = uploadedResume || JSON.stringify(resumeData);
+            
             const response = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    resume: JSON.stringify(resumeData),
+                    resume: resumeToAnalyze,
                     jd: jobDescription
                 })
             });
 
             const data = await response.json();
-            if (data.success) {
-                // Update resume with AI suggestions
-                setResumeData(data.updatedResume);
-                setAiScore(Math.floor(Math.random() * 20) + 80); // Simulate score
-                setSuggestions(data.finalProfessionalSummary?.suggestions || suggestions);
+            if (data.success && data.updatedResume) {
+                const updatedResume = data.updatedResume;
+                
+                // Convert API response to frontend format
+                const convertedData = {
+                    contact: {
+                        name: updatedResume.name || resumeData.contact.name,
+                        email: updatedResume.contact?.email || resumeData.contact.email,
+                        phone: updatedResume.contact?.phone || resumeData.contact.phone,
+                        location: updatedResume.contact?.location || resumeData.contact.location,
+                        linkedin: resumeData.contact.linkedin,
+                        website: resumeData.contact.website
+                    },
+                    summary: updatedResume.professionalSummary || resumeData.summary,
+                    experience: updatedResume.workExperience?.map(exp => ({
+                        title: exp.role || '',
+                        company: exp.company || '',
+                        location: exp.location || '',
+                        startDate: exp.startDate || '',
+                        endDate: exp.endDate || '',
+                        points: exp.projects?.flatMap(project => project.keyAchievements || []) || []
+                    })) || resumeData.experience,
+                    education: updatedResume.education ? [{
+                        degree: updatedResume.education.degree || '',
+                        school: updatedResume.education.university || '',
+                        location: '',
+                        year: updatedResume.education.gpa || ''
+                    }] : resumeData.education,
+                    skills: updatedResume.technicalSkills ? 
+                        Object.values(updatedResume.technicalSkills).flat() : resumeData.skills,
+                    projects: updatedResume.workExperience?.flatMap(exp => 
+                        exp.projects?.map(project => ({
+                            name: project.name || '',
+                            description: project.description || '',
+                            technologies: project.techStack || []
+                        })) || []
+                    ) || resumeData.projects
+                };
+                
+                // Track updated points for highlighting
+                const newPoints = new Set();
+                if (data.finalUpdatedSkills?.missingSkills) {
+                    data.finalUpdatedSkills.missingSkills.forEach(skill => newPoints.add(skill));
+                }
+                
+                setResumeData(convertedData);
+                setUpdatedPoints(newPoints);
+                setAiScore(data.resumeScore || Math.floor(Math.random() * 20) + 80);
+                setSuggestions(data.suggestions || suggestions);
             }
         } catch (error) {
             console.error('Analysis failed:', error);
+            alert('Analysis failed. Please try again.');
         } finally {
             setAnalyzing(false);
         }
@@ -191,6 +305,59 @@ const ResumeBuilder = () => {
         </div>
     );
 
+    const UploadSection = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Upload Resume</h3>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                <p className="text-gray-600 mb-4">Upload your existing resume</p>
+                <input
+                    type="file"
+                    accept=".txt,.pdf,.doc,.docx"
+                    onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                const text = event.target.result;
+                                setUploadedResume(text);
+                                processUploadedResume(text);
+                            };
+                            reader.readAsText(file);
+                        }
+                    }}
+                    className="hidden"
+                    id="resume-upload"
+                />
+                <label htmlFor="resume-upload" className="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-700">
+                    Choose File
+                </label>
+            </div>
+            <div className="space-y-2">
+                <label className="block text-sm font-medium">Or paste resume text:</label>
+                <textarea
+                    value={uploadedResume}
+                    onChange={(e) => setUploadedResume(e.target.value)}
+                    className="w-full p-3 border rounded h-32"
+                    placeholder="Paste your resume text here..."
+                />
+                <button
+                    onClick={() => processUploadedResume(uploadedResume)}
+                    disabled={!uploadedResume.trim()}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                >
+                    Process Resume
+                </button>
+            </div>
+            {uploadError && (
+                <div className="text-red-600 text-sm mt-2">
+                    <i className="fas fa-exclamation-triangle mr-1"></i>
+                    {uploadError}
+                </div>
+            )}
+        </div>
+    );
+
     const SkillsSection = () => (
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">Skills</h3>
@@ -205,11 +372,12 @@ const ResumeBuilder = () => {
 
     const renderActiveSection = () => {
         switch(activeSection) {
+            case 'upload': return <UploadSection />;
             case 'contact': return <ContactSection />;
             case 'summary': return <SummarySection />;
             case 'experience': return <ExperienceSection />;
             case 'skills': return <SkillsSection />;
-            default: return <ContactSection />;
+            default: return <UploadSection />;
         }
     };
 
@@ -318,9 +486,20 @@ const ResumeBuilder = () => {
                                         <span className="text-gray-500 text-sm">{exp.startDate} - {exp.endDate}</span>
                                     </div>
                                     <ul className="list-disc list-inside text-gray-700 space-y-1">
-                                        {exp.points.map((point, pointIndex) => (
-                                            <li key={pointIndex}>{point}</li>
-                                        ))}
+                                        {exp.points.map((point, pointIndex) => {
+                                            const isUpdated = Array.from(updatedPoints).some(skill => 
+                                                point.toLowerCase().includes(skill.toLowerCase())
+                                            );
+                                            return (
+                                                <li 
+                                                    key={pointIndex} 
+                                                    className={isUpdated ? 'bg-yellow-100 border-l-4 border-yellow-500 pl-2' : ''}
+                                                >
+                                                    {point}
+                                                    {isUpdated && <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">NEW</span>}
+                                                </li>
+                                            );
+                                        })}
                                     </ul>
                                 </div>
                             ))}
@@ -332,11 +511,22 @@ const ResumeBuilder = () => {
                                 SKILLS
                             </h2>
                             <div className="flex flex-wrap gap-2">
-                                {resumeData.skills.map((skill, index) => (
-                                    <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                                        {skill}
-                                    </span>
-                                ))}
+                                {resumeData.skills.map((skill, index) => {
+                                    const isUpdated = updatedPoints.has(skill);
+                                    return (
+                                        <span 
+                                            key={index} 
+                                            className={`px-3 py-1 rounded-full text-sm ${
+                                                isUpdated 
+                                                    ? 'bg-green-100 text-green-800 border-2 border-green-300' 
+                                                    : 'bg-blue-100 text-blue-800'
+                                            }`}
+                                        >
+                                            {skill}
+                                            {isUpdated && <span className="ml-1 text-xs">✨</span>}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

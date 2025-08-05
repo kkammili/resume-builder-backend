@@ -15,6 +15,7 @@
 
 import express from "express";
 import { genOldFormattedResume, genJobDescDetails, processSkills, generateImprovedSummary, genWorkExperience } from "./utils.js";
+import { validateResume } from "./validation.js";
 import { diffLines } from "diff";
 
 const router = express.Router();
@@ -26,7 +27,17 @@ router.post("/", async (req, res) => {
     const [oldFormattedResume, jobDescDetails] = await Promise.all([
         genOldFormattedResume(resume),
         genJobDescDetails(jd)
-    ])
+    ]);
+
+    // Validate the formatted resume
+    const validation = validateResume(oldFormattedResume);
+    if (!validation.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Resume validation failed",
+            validationErrors: validation.errors
+        });
+    }
     // generating final resume
     const [finalUpdatedSkills, finalProfessionalSummary] = await Promise.all([
         processSkills(oldFormattedResume?.technicalSkills, jobDescDetails?.job_desc_tech_skills),
