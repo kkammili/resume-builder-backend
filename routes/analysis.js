@@ -15,7 +15,7 @@
 
 import express from "express";
 import { genOldFormattedResume, genJobDescDetails, processSkills, generateImprovedSummary, genWorkExperience } from "./utils.js";
-// import processResumeAsync from "./processResumeAsync.js";
+import { diffLines } from "diff";
 
 const router = express.Router();
 router.post("/", async (req, res) => {
@@ -35,15 +35,29 @@ router.post("/", async (req, res) => {
 
     const finalWorkExperience = await genWorkExperience(oldFormattedResume?.workExperience, finalUpdatedSkills?.missingSkills)
 
+    // Create updated resume object
+    const updatedResume = {
+        ...oldFormattedResume,
+        technicalSkills: finalUpdatedSkills,
+        professionalSummary: finalProfessionalSummary.improved_summary,
+        workExperience: finalWorkExperience
+    };
+
+    // Generate diff between original and updated resume
+    const originalResumeText = JSON.stringify(oldFormattedResume, null, 2);
+    const updatedResumeText = JSON.stringify(updatedResume, null, 2);
+    const diff = diffLines(originalResumeText, updatedResumeText);
 
     // ✅ Send JSON response
     res.json({
         success: true,
-        oldFormattedResume,
+        originalResume: oldFormattedResume,
+        updatedResume,
         jobDescDetails,
         finalUpdatedSkills,
         finalProfessionalSummary,
-        finalWorkExperience
+        finalWorkExperience,
+        diff
     });
   } catch (error) {
     console.error("Analysis error:", error);
