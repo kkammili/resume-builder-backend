@@ -22,8 +22,30 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   const { resume, jd } = req.body;
   try {
+    // Check if this is just a parsing request (no real job description)
+    const isParsingOnly = jd === "Convert this resume to structured format";
+    
+    if (isParsingOnly) {
+      // Just parse and return the original resume structure
+      const oldFormattedResume = await genOldFormattedResume(resume);
+      
+      // Validate the formatted resume
+      const validation = validateResume(oldFormattedResume);
+      if (!validation.isValid) {
+          return res.status(400).json({
+              success: false,
+              error: "Resume validation failed",
+              validationErrors: validation.errors
+          });
+      }
+      
+      return res.json({
+          success: true,
+          originalResume: oldFormattedResume
+      });
+    }
  
-    // resume and jd inputs
+    // resume and jd inputs for optimization
     const [oldFormattedResume, jobDescDetails] = await Promise.all([
         genOldFormattedResume(resume),
         genJobDescDetails(jd)

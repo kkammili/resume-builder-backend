@@ -63,61 +63,59 @@ const ResumeBuilder = () => {
         { id: 'projects', label: 'Projects', icon: 'fas fa-code' }
     ];
 
-    const processUploadedResume = async (resumeText) => {
+    const processUploadedResume = (resumeText) => {
         try {
-            const response = await fetch('/api/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    resume: resumeText,
-                    jd: "Convert this resume to structured format"
-                })
-            });
-
-            const data = await response.json();
-            if (data.success && data.originalResume) {
-                const originalResume = data.originalResume;
-
-                // Convert to frontend format
-                const convertedData = {
-                    contact: {
-                        name: originalResume.name || 'Name',
-                        email: originalResume.contact?.email || '',
-                        phone: originalResume.contact?.phone || '',
-                        location: originalResume.contact?.location || '',
-                        linkedin: '',
-                        website: ''
-                    },
-                    summary: originalResume.professionalSummary || '',
-                    experience: originalResume.workExperience?.map(exp => ({
-                        title: exp.role || '',
-                        company: exp.company || '',
-                        location: exp.location || '',
-                        startDate: exp.startDate || '',
-                        endDate: exp.endDate || '',
-                        points: exp.projects?.flatMap(project => project.keyAchievements || []) || []
-                    })) || [],
-                    education: originalResume.education ? [{
-                        degree: originalResume.education.degree || '',
-                        school: originalResume.education.university || '',
-                        location: '',
-                        year: originalResume.education.gpa || ''
-                    }] : [],
-                    skills: originalResume.technicalSkills ? 
-                        Object.values(originalResume.technicalSkills).flat() : [],
-                    projects: originalResume.workExperience?.flatMap(exp => 
-                        exp.projects?.map(project => ({
-                            name: project.name || '',
-                            description: project.description || '',
-                            technologies: project.techStack || []
-                        })) || []
-                    ) || []
-                };
-
-                setResumeData(convertedData);
-                setUploadError('');
-                alert('Resume uploaded and converted successfully!');
+            // Simple text parsing without AI - just store the raw text
+            setUploadedResume(resumeText);
+            
+            // Basic parsing to extract some information if possible
+            const lines = resumeText.split('\n').filter(line => line.trim());
+            
+            // Try to find name (usually first line or after common headers)
+            let name = 'Name';
+            const namePattern = /^[A-Z][a-z]+ [A-Z][a-z]+/;
+            for (let line of lines) {
+                if (namePattern.test(line.trim()) && !line.includes('@') && !line.includes('(')) {
+                    name = line.trim();
+                    break;
+                }
             }
+            
+            // Try to find email
+            let email = '';
+            const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+            for (let line of lines) {
+                const match = line.match(emailPattern);
+                if (match) {
+                    email = match[0];
+                    break;
+                }
+            }
+            
+            // Try to find phone
+            let phone = '';
+            const phonePattern = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+            for (let line of lines) {
+                const match = line.match(phonePattern);
+                if (match) {
+                    phone = match[0];
+                    break;
+                }
+            }
+            
+            // Set basic contact info, keep other sections as default
+            setResumeData(prev => ({
+                ...prev,
+                contact: {
+                    ...prev.contact,
+                    name: name,
+                    email: email,
+                    phone: phone
+                }
+            }));
+            
+            setUploadError('');
+            alert('Resume uploaded successfully! You can now paste a job description and click "Optimize Resume" to tailor it.');
         } catch (error) {
             console.error('Upload processing failed:', error);
             setUploadError('Failed to process uploaded resume');
@@ -125,6 +123,11 @@ const ResumeBuilder = () => {
     };
 
     const analyzeWithAI = async () => {
+        if (!uploadedResume.trim()) {
+            alert('Please upload a resume first');
+            return;
+        }
+        
         if (!jobDescription.trim()) {
             alert('Please enter a job description first');
             return;
@@ -132,13 +135,11 @@ const ResumeBuilder = () => {
 
         setAnalyzing(true);
         try {
-            const resumeToAnalyze = uploadedResume || JSON.stringify(resumeData);
-
             const response = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    resume: resumeToAnalyze,
+                    resume: uploadedResume,
                     jd: jobDescription
                 })
             });
@@ -378,7 +379,8 @@ const ResumeBuilder = () => {
                 <div className="flex items-center space-x-2">
                     <button 
                         onClick={() => setShowAiPanel(!showAiPanel)}
-                        className="toolbar-btn bg-purple-600 text-white hover:bg-purple-700"
+                        className={`toolbar-btn ${uploadedResume.trim() ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-400 text-white cursor-not-allowed'}`}
+                        disabled={!uploadedResume.trim()}
                     >
                         <i className="fas fa-robot mr-2"></i>AI Optimize
                     </button>
@@ -540,21 +542,27 @@ const ResumeBuilder = () => {
 
                             <button
                                 onClick={analyzeWithAI}
-                                disabled={analyzing}
+                                disabled={analyzing || !uploadedResume.trim()}
                                 className="w-full bg-purple-600 text-white py-3 rounded font-medium hover:bg-purple-700 disabled:opacity-50"
                             >
                                 {analyzing ? (
                                     <>
                                         <i className="fas fa-spinner fa-spin mr-2"></i>
-                                        Analyzing...
+                                        Optimizing...
                                     </>
                                 ) : (
                                     <>
                                         <i className="fas fa-magic mr-2"></i>
-                                        Optimize Resume
+                                        Update Resume
                                     </>
                                 )}
                             </button>
+                            
+                            {!uploadedResume.trim() && (
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Please upload a resume first to enable optimization.
+                                </p>
+                            )}
 
                             <div>
                                 <h4 className="font-medium mb-2">AI Suggestions:</h4>
