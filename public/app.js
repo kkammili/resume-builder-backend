@@ -1,4 +1,3 @@
-
 const { useState, useEffect, useRef } = React;
 
 const ResumeBuilder = () => {
@@ -38,12 +37,12 @@ const ResumeBuilder = () => {
             technologies: ['React', 'Node.js']
         }]
     });
-    
+
     const [uploadedResume, setUploadedResume] = useState('');
     const [showUpload, setShowUpload] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [updatedPoints, setUpdatedPoints] = useState(new Set());
-    
+
     const [aiScore, setAiScore] = useState(87);
     const [suggestions, setSuggestions] = useState([
         'Add more quantifiable achievements',
@@ -78,7 +77,7 @@ const ResumeBuilder = () => {
             const data = await response.json();
             if (data.success && data.originalResume) {
                 const originalResume = data.originalResume;
-                
+
                 // Convert to frontend format
                 const convertedData = {
                     contact: {
@@ -114,7 +113,7 @@ const ResumeBuilder = () => {
                         })) || []
                     ) || []
                 };
-                
+
                 setResumeData(convertedData);
                 setUploadError('');
                 alert('Resume uploaded and converted successfully!');
@@ -130,11 +129,11 @@ const ResumeBuilder = () => {
             alert('Please enter a job description first');
             return;
         }
-        
+
         setAnalyzing(true);
         try {
             const resumeToAnalyze = uploadedResume || JSON.stringify(resumeData);
-            
+
             const response = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -147,7 +146,7 @@ const ResumeBuilder = () => {
             const data = await response.json();
             if (data.success && data.updatedResume) {
                 const updatedResume = data.updatedResume;
-                
+
                 // Convert API response to frontend format
                 const convertedData = {
                     contact: {
@@ -183,13 +182,13 @@ const ResumeBuilder = () => {
                         })) || []
                     ) || resumeData.projects
                 };
-                
+
                 // Track updated points for highlighting
                 const newPoints = new Set();
                 if (data.finalUpdatedSkills?.missingSkills) {
                     data.finalUpdatedSkills.missingSkills.forEach(skill => newPoints.add(skill));
                 }
-                
+
                 setResumeData(convertedData);
                 setUpdatedPoints(newPoints);
                 setAiScore(data.resumeScore || Math.floor(Math.random() * 20) + 80);
@@ -258,50 +257,33 @@ const ResumeBuilder = () => {
     const ExperienceSection = () => (
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">Work Experience</h3>
-            {resumeData.experience.map((exp, index) => (
-                <div key={index} className="border p-4 rounded">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <input
-                            type="text"
-                            placeholder="Job Title"
-                            value={exp.title}
-                            onChange={(e) => {
-                                const newExp = [...resumeData.experience];
-                                newExp[index].title = e.target.value;
-                                setResumeData({...resumeData, experience: newExp});
-                            }}
-                            className="p-2 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Company"
-                            value={exp.company}
-                            onChange={(e) => {
-                                const newExp = [...resumeData.experience];
-                                newExp[index].company = e.target.value;
-                                setResumeData({...resumeData, experience: newExp});
-                            }}
-                            className="p-2 border rounded"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        {exp.points.map((point, pointIndex) => (
-                            <input
-                                key={pointIndex}
-                                type="text"
-                                placeholder="Achievement bullet point"
-                                value={point}
-                                onChange={(e) => {
-                                    const newExp = [...resumeData.experience];
-                                    newExp[index].points[pointIndex] = e.target.value;
-                                    setResumeData({...resumeData, experience: newExp});
-                                }}
-                                className="w-full p-2 border rounded"
-                            />
+            {(resumeData.experience || []).map((exp, index) => (
+                            <div key={index} className="mb-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-bold text-gray-800">{exp.title}</h3>
+                                        <p className="text-gray-600">{exp.company} • {exp.location}</p>
+                                    </div>
+                                    <span className="text-gray-500 text-sm">{exp.startDate} - {exp.endDate}</span>
+                                </div>
+                                <ul className="list-disc list-inside text-gray-700 space-y-1">
+                                    {(exp.points || []).map((point, pointIndex) => {
+                                        const isUpdated = Array.from(updatedPoints).some(skill => 
+                                            point.toLowerCase().includes(skill.toLowerCase())
+                                        );
+                                        return (
+                                            <li 
+                                                key={pointIndex} 
+                                                className={isUpdated ? 'bg-yellow-100 border-l-4 border-yellow-500 pl-2' : ''}
+                                            >
+                                                {point}
+                                                {isUpdated && <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">✨ AI ENHANCED</span>}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
                         ))}
-                    </div>
-                </div>
-            ))}
         </div>
     );
 
@@ -391,7 +373,7 @@ const ResumeBuilder = () => {
                         Free Resume Builder
                     </h1>
                 </div>
-                
+
                 {/* Toolbar */}
                 <div className="flex items-center space-x-2">
                     <button 
@@ -476,33 +458,33 @@ const ResumeBuilder = () => {
                             <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2 mb-4">
                                 EXPERIENCE
                             </h2>
-                            {resumeData.experience.map((exp, index) => (
-                                <div key={index} className="mb-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h3 className="font-bold text-gray-800">{exp.title}</h3>
-                                            <p className="text-gray-600">{exp.company} • {exp.location}</p>
-                                        </div>
-                                        <span className="text-gray-500 text-sm">{exp.startDate} - {exp.endDate}</span>
+                            {(resumeData.experience || []).map((exp, index) => (
+                            <div key={index} className="mb-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-bold text-gray-800">{exp.title}</h3>
+                                        <p className="text-gray-600">{exp.company} • {exp.location}</p>
                                     </div>
-                                    <ul className="list-disc list-inside text-gray-700 space-y-1">
-                                        {exp.points.map((point, pointIndex) => {
-                                            const isUpdated = Array.from(updatedPoints).some(skill => 
-                                                point.toLowerCase().includes(skill.toLowerCase())
-                                            );
-                                            return (
-                                                <li 
-                                                    key={pointIndex} 
-                                                    className={isUpdated ? 'bg-yellow-100 border-l-4 border-yellow-500 pl-2' : ''}
-                                                >
-                                                    {point}
-                                                    {isUpdated && <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">NEW</span>}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
+                                    <span className="text-gray-500 text-sm">{exp.startDate} - {exp.endDate}</span>
                                 </div>
-                            ))}
+                                <ul className="list-disc list-inside text-gray-700 space-y-1">
+                                    {(exp.points || []).map((point, pointIndex) => {
+                                        const isUpdated = Array.from(updatedPoints).some(skill => 
+                                            point.toLowerCase().includes(skill.toLowerCase())
+                                        );
+                                        return (
+                                            <li 
+                                                key={pointIndex} 
+                                                className={isUpdated ? 'bg-yellow-100 border-l-4 border-yellow-500 pl-2' : ''}
+                                            >
+                                                {point}
+                                                {isUpdated && <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">✨ AI ENHANCED</span>}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        ))}
                         </div>
 
                         {/* Skills */}
@@ -544,7 +526,7 @@ const ResumeBuilder = () => {
                                 <i className="fas fa-times"></i>
                             </button>
                         </div>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-2">Job Description</label>

@@ -4,11 +4,11 @@ import Joi from 'joi';
 export const resumeValidationSchema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
     contact: Joi.object({
-        location: Joi.string().max(200),
-        email: Joi.string().email().required(),
-        phone: Joi.string().pattern(/^[\+]?[1-9][\d]{0,15}$/)
+        location: Joi.string().max(200).allow(''),
+        email: Joi.string().email().allow(''),
+        phone: Joi.string().allow('')
     }).required(),
-    professionalSummary: Joi.string().min(50).max(1000).required(),
+    professionalSummary: Joi.string().min(10).max(2000).required(),
     technicalSkills: Joi.object().pattern(
         Joi.string(),
         Joi.array().items(Joi.string())
