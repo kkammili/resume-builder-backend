@@ -3,7 +3,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { OpenAI } from "openai";
 
-const openai = new OpenAI({apiKey: process.env.AI_KEY})
+const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY})
+
+// Debug: Check if API key is loaded
+if (!process.env.OPENAI_API_KEY) {
+    console.error("❌ OPENAI_API_KEY environment variable is not set!");
+} else {
+    console.log("✅ OpenAI API key loaded successfully");
+}
 
 // reading prompts
 // Get directory path (for ES modules)
