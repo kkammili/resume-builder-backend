@@ -72,10 +72,10 @@ const ResumeBuilder = () => {
         try {
             // Store the raw text
             setUploadedResume(resumeText);
-            
+
             // Parse the resume content to extract actual information
             const lines = resumeText.split('\n').filter(line => line.trim());
-            
+
             // Enhanced section detection patterns
             const sectionPatterns = {
                 contact: /^(CONTACT|PERSONAL)/i,
@@ -87,12 +87,12 @@ const ResumeBuilder = () => {
                 leadership: /^(LEADERSHIP|EXTRAS|ACTIVITIES|ACHIEVEMENTS|AWARDS)/i,
                 projects: /^(PROJECTS|PORTFOLIO)/i
             };
-            
+
             // Dynamic section parsing
             const sections = {};
             let currentSection = null;
             let currentSectionContent = [];
-            
+
             // Extract name (first non-empty line that's not a section header)
             let name = '';
             for (let line of lines.slice(0, 5)) {
@@ -103,38 +103,38 @@ const ResumeBuilder = () => {
                 }
             }
             if (!name) name = lines[0]?.trim() || 'Name';
-            
+
             // Extract contact info from entire document
             let email = '';
             let phone = '';
             let location = '';
             let linkedin = '';
-            
+
             const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
             const phonePattern = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
             const linkedinPattern = /linkedin\.com\/in\/[^\s]+|@[a-zA-Z0-9._-]+/;
-            
+
             for (let line of lines.slice(0, 10)) {
                 const emailMatch = line.match(emailPattern);
                 if (emailMatch) email = emailMatch[0];
-                
+
                 const phoneMatch = line.match(phonePattern);
                 if (phoneMatch) phone = phoneMatch[0];
-                
+
                 const linkedinMatch = line.match(linkedinPattern);
                 if (linkedinMatch) linkedin = linkedinMatch[0];
-                
+
                 // Extract location (look for city, state pattern)
                 if (line.includes(',') && line.match(/\b[A-Z]{2}\b|\b\d{5}\b/)) {
                     location = line.trim();
                 }
             }
-            
+
             // Parse sections dynamically
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
-                
+
                 // Check if this line is a section header
                 let matchedSection = null;
                 for (const [sectionName, pattern] of Object.entries(sectionPatterns)) {
@@ -143,13 +143,13 @@ const ResumeBuilder = () => {
                         break;
                     }
                 }
-                
+
                 if (matchedSection) {
                     // Save previous section
                     if (currentSection && currentSectionContent.length > 0) {
                         sections[currentSection] = [...currentSectionContent];
                     }
-                    
+
                     // Start new section
                     currentSection = matchedSection;
                     currentSectionContent = [];
@@ -158,18 +158,18 @@ const ResumeBuilder = () => {
                     currentSectionContent.push(line);
                 }
             }
-            
+
             // Save last section
             if (currentSection && currentSectionContent.length > 0) {
                 sections[currentSection] = [...currentSectionContent];
             }
-            
+
             // Parse professional summary
             let summary = '';
             if (sections.summary) {
                 summary = sections.summary.join(' ').trim();
             }
-            
+
             // Parse skills with enhanced extraction
             let skills = [];
             if (sections.skills) {
@@ -187,32 +187,32 @@ const ResumeBuilder = () => {
                     }
                 }
             }
-            
+
             // Parse work experience with better detection
             let experience = [];
             if (sections.experience) {
                 let currentJob = null;
                 let currentPoints = [];
-                
+
                 for (let line of sections.experience) {
                     // Check if this looks like a job title line
                     if (line.includes('|') || (line.includes('–') || line.includes('-')) && 
                         (line.includes('202') || line.includes('Present') || line.includes('Current'))) {
-                        
+
                         // Save previous job if exists
                         if (currentJob) {
                             currentJob.points = [...currentPoints];
                             experience.push(currentJob);
                         }
-                        
+
                         // Parse new job
                         let title = '', company = '', dates = '', jobLocation = location;
-                        
+
                         if (line.includes('|')) {
                             const parts = line.split('|');
                             const titleCompany = parts[0].trim();
                             dates = parts[parts.length - 1].trim();
-                            
+
                             if (titleCompany.includes('–')) {
                                 const titleMatch = titleCompany.match(/^(.+?)\s*–\s*(.+)$/);
                                 if (titleMatch) {
@@ -228,7 +228,7 @@ const ResumeBuilder = () => {
                             const datePart = line.match(/(20\d{2}.*(?:Present|Current|\d{4}))/);
                             if (datePart) dates = datePart[1];
                         }
-                        
+
                         currentJob = {
                             title: title || 'Position',
                             company: company || 'Company',
@@ -243,14 +243,14 @@ const ResumeBuilder = () => {
                         currentPoints.push(line.replace(/^[•-]\s*/, '').trim());
                     }
                 }
-                
+
                 // Add the last job
                 if (currentJob) {
                     currentJob.points = [...currentPoints];
                     experience.push(currentJob);
                 }
             }
-            
+
             // Parse education
             let education = [];
             if (sections.education) {
@@ -275,7 +275,7 @@ const ResumeBuilder = () => {
                     year: '2020'
                 });
             }
-            
+
             // Update resume data with parsed information including new sections
             setResumeData({
                 contact: {
@@ -310,7 +310,7 @@ const ResumeBuilder = () => {
                 leadership: sections.leadership || [],
                 rawSections: sections // Store all parsed sections for reference
             });
-            
+
             setUploadError('');
             alert('Resume uploaded successfully! Your content has been preserved. You can now paste a job description and click "Update Resume" to tailor it.');
         } catch (error) {
@@ -324,7 +324,7 @@ const ResumeBuilder = () => {
             alert('Please upload a resume first');
             return;
         }
-        
+
         if (!jobDescription.trim()) {
             alert('Please enter a job description first');
             return;
@@ -886,7 +886,7 @@ const ResumeBuilder = () => {
                                     </>
                                 )}
                             </button>
-                            
+
                             {!uploadedResume.trim() && (
                                 <p className="text-sm text-gray-500 mt-2">
                                     Please upload a resume first to enable optimization.
@@ -913,3 +913,18 @@ const ResumeBuilder = () => {
 };
 
 ReactDOM.render(<ResumeBuilder />, document.getElementById('root'));
+
+.toolbar-btn { 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            border: none; 
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        .toolbar-btn:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
