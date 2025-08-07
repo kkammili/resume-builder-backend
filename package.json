@@ -20,6 +20,11 @@
     "morgan": "~1.9.1",
     "nodemon": "^3.1.10",
     "openai": "^4.82.0",
-    "serverless-http": "^3.2.0"
+    "serverless-http": "^3.2.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.294.0",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7"
   }
 }
