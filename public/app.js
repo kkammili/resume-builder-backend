@@ -286,8 +286,6 @@ const ResumeBuilder = () => {
     </div>
   );
 
-      </div>
-
       {showLiveEditor && (
         <div className="space-y-6">
           {/* Contact Section */}
