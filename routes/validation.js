@@ -16,7 +16,7 @@ export const resumeValidationSchema = Joi.object({
     phone: Joi.string().allow("").messages({
       "string.empty": "Phone number is optional",
     }),
-    linkedin: Joi.string().uri().allow("").messages({
+    linkedin: Joi.string().allow("").messages({
       "string.uri": "Please provide a valid LinkedIn URL",
     }),
     website: Joi.string().uri().allow("").messages({

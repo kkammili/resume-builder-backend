@@ -286,16 +286,6 @@ const ResumeBuilder = () => {
     </div>
   );
 
-  const LiveEditor = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Live Resume Editor</h3>
-        <button
-          onClick={() => setShowLiveEditor(!showLiveEditor)}
-          className="toolbar-btn bg-blue-600 text-white hover:bg-blue-700"
-        >
-          <i className="fas fa-edit mr-2"></i>
-          {showLiveEditor ? "Hide Editor" : "Show Editor"}
         </button>
       </div>
 
@@ -690,8 +680,6 @@ const ResumeBuilder = () => {
     switch (activeSection) {
       case "json":
         return <JsonEditor />;
-      case "live":
-        return <LiveEditor />;
       case "preview":
         return <ResumePreview />;
       case "ai":
