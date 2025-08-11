@@ -115,7 +115,6 @@ const ResumeBuilder = () => {
   const [showNotifications, setShowNotifications] = useState([]);
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showLiveEditor, setShowLiveEditor] = useState(false);
 
   // Refs
   const liveEditorRef = useRef(null);
@@ -229,7 +228,6 @@ const ResumeBuilder = () => {
 
   const sections = [
     { id: "json", label: "JSON Editor", icon: "fas fa-code" },
-    { id: "live", label: "Live Editor", icon: "fas fa-edit" },
     { id: "preview", label: "Preview", icon: "fas fa-eye" },
     { id: "ai", label: "AI Analysis", icon: "fas fa-robot" },
   ];
@@ -286,136 +284,6 @@ const ResumeBuilder = () => {
     </div>
   );
 
-      {showLiveEditor && (
-        <div className="space-y-6">
-          {/* Contact Section */}
-          <div className="bg-card border rounded-lg p-4">
-            <h4 className="font-semibold mb-3">Contact Information</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={resumeData.name}
-                onChange={(e) =>
-                  updateLiveEditor({ ...resumeData, name: e.target.value })
-                }
-                className="p-2 border rounded bg-background text-foreground"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={resumeData.contact.email}
-                onChange={(e) =>
-                  updateLiveEditor({
-                    ...resumeData,
-                    contact: { ...resumeData.contact, email: e.target.value },
-                  })
-                }
-                className="p-2 border rounded bg-background text-foreground"
-              />
-              <input
-                type="text"
-                placeholder="Phone"
-                value={resumeData.contact.phone}
-                onChange={(e) =>
-                  updateLiveEditor({
-                    ...resumeData,
-                    contact: { ...resumeData.contact, phone: e.target.value },
-                  })
-                }
-                className="p-2 border rounded bg-background text-foreground"
-              />
-              <input
-                type="text"
-                placeholder="Location"
-                value={resumeData.contact.location}
-                onChange={(e) =>
-                  updateLiveEditor({
-                    ...resumeData,
-                    contact: {
-                      ...resumeData.contact,
-                      location: e.target.value,
-                    },
-                  })
-                }
-                className="p-2 border rounded bg-background text-foreground"
-              />
-            </div>
-          </div>
-
-          {/* Summary Section */}
-          <div className="bg-card border rounded-lg p-4">
-            <h4 className="font-semibold mb-3">Professional Summary</h4>
-            <textarea
-              value={resumeData.professionalSummary}
-              onChange={(e) =>
-                updateLiveEditor({
-                  ...resumeData,
-                  professionalSummary: e.target.value,
-                })
-              }
-              className="w-full p-3 border rounded h-32 bg-background text-foreground resize-none"
-              placeholder="Write your professional summary..."
-            />
-          </div>
-
-          {/* Skills Section */}
-          <div className="bg-card border rounded-lg p-4">
-            <h4 className="font-semibold mb-3">Technical Skills</h4>
-            {Object.entries(resumeData.technicalSkills).map(
-              ([category, skills]) => (
-                <div key={category} className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="Category"
-                    value={category}
-                    onChange={(e) => {
-                      const newSkills = { ...resumeData.technicalSkills };
-                      delete newSkills[category];
-                      newSkills[e.target.value] = skills;
-                      updateLiveEditor({
-                        ...resumeData,
-                        technicalSkills: newSkills,
-                      });
-                    }}
-                    className="p-2 border rounded bg-background text-foreground mb-2"
-                  />
-                  <textarea
-                    value={skills.join(", ")}
-                    onChange={(e) => {
-                      const newSkills = { ...resumeData.technicalSkills };
-                      newSkills[category] = e.target.value
-                        .split(", ")
-                        .filter((s) => s.trim());
-                      updateLiveEditor({
-                        ...resumeData,
-                        technicalSkills: newSkills,
-                      });
-                    }}
-                    className="w-full p-2 border rounded bg-background text-foreground"
-                    placeholder="Skills separated by commas"
-                  />
-                </div>
-              )
-            )}
-            <button
-              onClick={() => {
-                const newSkills = {
-                  ...resumeData.technicalSkills,
-                  "New Category": [],
-                };
-                updateLiveEditor({ ...resumeData, technicalSkills: newSkills });
-              }}
-              className="toolbar-btn bg-green-600 text-white hover:bg-green-700"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              Add Skill Category
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 
   const ResumePreview = () => (
     <div className="space-y-4">
