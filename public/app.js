@@ -286,7 +286,6 @@ const ResumeBuilder = () => {
     </div>
   );
 
-        </button>
       </div>
 
       {showLiveEditor && (
