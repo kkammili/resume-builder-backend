@@ -221,10 +221,10 @@ const ResumeBuilder = () => {
   };
 
   // Live editor functions
-  const updateLiveEditor = (newData) => {
-    setResumeData(newData);
-    setJsonInput(JSON.stringify(newData, null, 2));
-  };
+  // const updateLiveEditor = (newData) => {
+  //   setResumeData(newData);
+  //   setJsonInput(JSON.stringify(newData, null, 2));
+  // };
 
   const sections = [
     { id: "json", label: "JSON Editor", icon: "fas fa-code" },
@@ -283,7 +283,6 @@ const ResumeBuilder = () => {
       )}
     </div>
   );
-
 
   const ResumePreview = () => (
     <div className="space-y-4">

@@ -83,7 +83,8 @@ router.post("/json", async (req, res) => {
     const updatedResume = {
       ...validation.data,
       technicalSkills: finalUpdatedSkills,
-      professionalSummary: finalProfessionalSummary.improved_summary,
+      professionalSummary:
+        finalProfessionalSummary.improved_professional_summary,
       workExperience: finalWorkExperience,
     };
 
